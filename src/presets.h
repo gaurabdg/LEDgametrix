@@ -4,8 +4,16 @@ typedef struct Pipe {
   byte Xcrd;
 };
 
+typedef enum Dir {
+  DOWN = -1,
+  STRAIGHT,
+  UP
+};
 
 typedef struct Gameplay {
+
+  float BirdVel;
+  float BirdCrd;
 
   Pipe pipe1;
   Pipe pipe2;

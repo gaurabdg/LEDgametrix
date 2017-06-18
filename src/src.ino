@@ -21,6 +21,10 @@ int Update;
 int Pipe1MoveTimer;
 int Pipe2MoveTimer;
 
+const float grav = 0.005;
+const float up = -0.05;
+const byte BirdX = 1;
+
 void setup()
 {
   MX.shutdown(0, false);
@@ -29,21 +33,24 @@ void setup()
   pinMode (BUTTON_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
   randomSeed(analogRead(0));
-  running = false
+  running = false;
   timer.every(30, ButtonPressScan);
   GameStart(true);
 }
+void MoveBird();
 
 void GameStart(boolean ask)
 {
   if (ask) 
   {
     running = true;
+    game.BirdCrd = 0.5;
     game.pipe1.Xcrd = 7;
     game.pipe1.parts = PipeGen();
     game.pipe2.Xcrd = 7;
     game.pipe2.parts = PipeGen();
-	imer.after(2500, Pipe1Start);
+    Update = timer.every(50, MoveBird);
+	 timer.after(2500, Pipe1Start);
     timer.after(4500, Pipe2Start);
   } 
   else 
@@ -74,6 +81,9 @@ void Pipe2Move()
 {
   PipeMove(&game.pipe2);
 }
+void screenburst();
+void gameOver();
+void bufferMove();
 
 void PipeMove(Pipe *pipe)
 {
@@ -89,6 +99,20 @@ void PipeMove(Pipe *pipe)
   }
 
   PipeDraw(pipe, pipe->Xcrd);
+
+    if (pipe->Xcrd == 2) 
+    {
+    byte yCrd = 7 * game.BirdCrd;  
+    if (pipe->parts & (0x80 >> yCrd)) 
+    {
+      screenburst();
+      gameOver();
+    }
+    else 
+    {
+      // add score
+    }
+  }
 
   pipe->Xcrd = pipe->Xcrd - 1;
 }
@@ -135,19 +159,82 @@ void ButtonPressScan()
       
       if (!init) 
       {
-     	//change bird pos      
+     	  if (game.BirdVel > 0) 
+        {
+          game.BirdVel = up;  
+        }
+        else 
+        {
+          game.BirdVel += up;   
+        }       
       }      
     }
     else 
     {
-      transition();
-      startGame(true); 
+      bufferMove();
+      GameStart(true); 
     }
   }
   init = ButtonPress;
   digitalWrite(LED_PIN, ButtonPress);
 }
 
+void MoveBird()
+{
+	static float y = 0.5;
+	float initY = game.BirdCrd;
+
+  	game.BirdCrd = game.BirdCrd + game.BirdVel;
+
+  if (game.BirdCrd > 1) 
+  {
+    game.BirdCrd = 1;
+    game.BirdVel = 0;
+  }
+  else if (game.BirdCrd < 0) 
+  {
+    game.BirdCrd = 0;
+    game.BirdVel = 0;
+  }
+
+  byte yCrd = 7 * game.BirdCrd;  
+
+  Dir dir;
+  if (abs(initY - game.BirdCrd) < 0.01) 
+  {
+    dir = STRAIGHT;
+  }
+  else if (initY < game.BirdCrd) 
+  {
+    dir = UP;
+  }
+  else 
+  {
+    dir = DOWN;
+  }
+  
+  BirdForm(dir, yCrd);
+}
+
+void BirdForm(Dir dir, byte BirdHead)
+{
+  
+  static byte TailPixel, HeadPixel;
+  byte BirdTail;
+  BirdTail = constrain(BirdHead - dir, 0, 7);
+
+  
+  MX.setLed(0, TailPixel, BirdX, LOW);
+  MX.setLed(0, HeadPixel, BirdX + 1, LOW);
+
+  
+  MX.setLed(0, BirdTail, BirdX, HIGH);
+  MX.setLed(0, BirdHead, BirdX + 1, HIGH);
+
+  
+  TailPixel = BirdTail;
+  HeadPixel = BirdHead;
+}
 
 void screenburst()
 {
