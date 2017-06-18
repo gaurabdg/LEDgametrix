@@ -1,3 +1,8 @@
+typedef enum Status {
+  ON,
+  OFF
+};
+
 typedef struct Pipe {
   
   byte parts;
@@ -11,6 +16,9 @@ typedef enum Dir {
 };
 
 typedef struct Gameplay {
+
+  Status status;
+  int score;
 
   float BirdVel;
   float BirdCrd;

@@ -1,5 +1,6 @@
-#include "numbers.h"
 #include "presets.h"
+#include "letters.h"
+#include "numbers.h"
 
 #include <LedControl.h>
 #include <Timer.h>
@@ -15,7 +16,7 @@ LedControl MX = LedControl(DIN, CLK, CS, 1);
 Gameplay game;
 Timer timer;
 
-boolean running = true;
+//boolean running = true;
 
 int Update;
 int Pipe1MoveTimer;
@@ -33,29 +34,66 @@ void setup()
   pinMode (BUTTON_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
   randomSeed(analogRead(0));
-  running = false;
+  game.status  = OFF;
   timer.every(30, ButtonPressScan);
   GameStart(true);
 }
-void MoveBird();
+void MoveBird()
+{
+	static float y = 0.5;
+	game.BirdVel = game.BirdVel + grav;
+	float initY = game.BirdCrd;
+
+  	game.BirdCrd = game.BirdCrd + game.BirdVel;
+
+  if (game.BirdCrd > 1) 
+  {
+    game.BirdCrd = 1;
+    game.BirdVel = 0;
+  }
+  else if (game.BirdCrd < 0) 
+  {
+    game.BirdCrd = 0;
+    game.BirdVel = 0;
+  }
+
+  byte yCrd = 7 * game.BirdCrd;  
+
+  Dir dir;
+  if (abs(initY - game.BirdCrd) < 0.01) 
+  {
+    dir = STRAIGHT;
+  }
+  else if (initY < game.BirdCrd) 
+  {
+    dir = UP;
+  }
+  else 
+  {
+    dir = DOWN;
+  }
+  
+  BirdForm(dir, yCrd);
+}
 
 void GameStart(boolean ask)
 {
   if (ask) 
-  {
-    running = true;
+  {	
+  	game.score = 0;
+    game.status = ON;
     game.BirdCrd = 0.5;
     game.pipe1.Xcrd = 7;
     game.pipe1.parts = PipeGen();
     game.pipe2.Xcrd = 7;
     game.pipe2.parts = PipeGen();
     Update = timer.every(50, MoveBird);
-	 timer.after(2500, Pipe1Start);
+	timer.after(2500, Pipe1Start);
     timer.after(4500, Pipe2Start);
   } 
   else 
   {
-    running = false;
+    game.status = OFF;
     timer.stop(Update);
     timer.stop(Pipe1MoveTimer);
     timer.stop(Pipe2MoveTimer);
@@ -81,9 +119,74 @@ void Pipe2Move()
 {
   PipeMove(&game.pipe2);
 }
-void screenburst();
-void gameOver();
-void bufferMove();
+
+void screenburst()
+{
+  for (int i = 0; i < 15; ++i) 
+  {
+    allOn(true);
+    delay(20);
+    allOn(false);
+    delay(20);
+  }
+}
+
+void gameOver()
+{
+  displayScore(game.score);	
+  GameStart(false);
+}
+
+void allOn(boolean on) 
+{
+  byte val = on ? 0xff : 0;
+  for (byte n = 0; n < 8; ++n) 
+  {
+    MX.setRow(0, n, val);
+  }
+}
+
+void displayScore(byte num)
+{
+  if (num > 99) {
+    error();
+    return ;
+  }
+  byte tens = num / 10;
+  byte ones = num % 10;
+  for(int row = 0;row < 8;row++){
+    byte composite = nums[tens][row] | (nums[ones][row] >> 4);
+    updateFrameRow(row, composite);    
+  }
+}
+
+void bufferMove()
+{
+  for(int step = 0;step < 8;step++)
+  {
+    for (int row = 0; row < 8; row++) 
+    {
+      byte pixels = game.framebuffer[row];
+      if (row % 2) 
+      {
+        pixels = pixels >> 1;        
+      }
+      else 
+      {
+        pixels = pixels << 1;      
+      }
+      updateFrameRow(row, pixels);
+    }
+    
+    delay(50);
+  }  
+}
+
+void updateFrameRow(byte row, byte pixels) 
+{
+  MX.setRow(0, row, pixels);
+  game.framebuffer[row] = pixels;
+}
 
 void PipeMove(Pipe *pipe)
 {
@@ -110,7 +213,7 @@ void PipeMove(Pipe *pipe)
     }
     else 
     {
-      // add score
+      game.score++;
     }
   }
 
@@ -154,7 +257,7 @@ void ButtonPressScan()
 
   if (ButtonPress) 
   {
-    if (running = true) 
+    if (game.status == ON) 
     {
       
       if (!init) 
@@ -179,44 +282,6 @@ void ButtonPressScan()
   digitalWrite(LED_PIN, ButtonPress);
 }
 
-void MoveBird()
-{
-	static float y = 0.5;
-	game.BirdVel = game.BirdVel + grav;
-	float initY = game.BirdCrd;
-
-  	game.BirdCrd = game.BirdCrd + game.BirdVel;
-
-  if (game.BirdCrd > 1) 
-  {
-    game.BirdCrd = 1;
-    game.BirdVel = 0;
-  }
-  else if (game.BirdCrd < 0) 
-  {
-    game.BirdCrd = 0;
-    game.BirdVel = 0;
-  }
-
-  byte yCrd = 7 * game.BirdCrd;  
-
-  Dir dir;
-  if (abs(initY - game.BirdCrd) < 0.01) 
-  {
-    dir = STRAIGHT;
-  }
-  else if (initY < game.BirdCrd) 
-  {
-    dir = UP;
-  }
-  else 
-  {
-    dir = DOWN;
-  }
-  
-  BirdForm(dir, yCrd);
-}
-
 void BirdForm(Dir dir, byte BirdHead)
 {
   
@@ -237,28 +302,10 @@ void BirdForm(Dir dir, byte BirdHead)
   HeadPixel = BirdHead;
 }
 
-void screenburst()
+void error()
 {
-  for (int i = 0; i < 15; ++i) 
-  {
-    allOn(true);
-    delay(20);
-    allOn(false);
-    delay(20);
-  }
-}
-
-void gameOver()
-{
-  GameStart(false);
-}
-
-void allOn(boolean on) 
-{
-  byte val = on ? 0xff : 0;
-  for (byte n = 0; n < 8; ++n) 
-  {
-    MX.setRow(0, n, val);
+ for(int row = 0;row < 8;row++){
+    MX.setRow(0, row, lett[0][row]);
   }
 }
 
@@ -266,32 +313,3 @@ void loop()
 {
   timer.update();
 }
-
-void bufferMove()
-{
-  for(int step = 0;step < 8;step++)
-  {
-    for (int row = 0; row < 8; row++) 
-    {
-      byte pixels = game.framebuffer[row];
-      if (row % 2) 
-      {
-        pixels = pixels >> 1;        
-      }
-      else 
-      {
-        pixels = pixels << 1;      
-      }
-      updateFrameRow(row, pixels);
-    }
-    
-    delay(50);
-  }  
-}
-
-void updateFrameRow(byte row, byte pixels) 
-{
-  MX.setRow(0, row, pixels);
-  game.framebuffer[row] = pixels;
-}
-
