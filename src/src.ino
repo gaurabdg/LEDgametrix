@@ -29,7 +29,8 @@ void setup()
   pinMode (BUTTON_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
   randomSeed(analogRead(0));
-  //timer.every(30, ButtonPressScan);
+  running = false
+  timer.every(30, ButtonPressScan);
   GameStart(true);
 }
 
@@ -37,7 +38,7 @@ void GameStart(boolean ask)
 {
   if (ask) 
   {
-    //running = !running;
+    running = true;
     game.pipe1.Xcrd = 7;
     game.pipe1.parts = PipeGen();
     game.pipe2.Xcrd = 7;
@@ -47,7 +48,7 @@ void GameStart(boolean ask)
   } 
   else 
   {
-    running = !running;
+    running = false;
     timer.stop(Update);
     timer.stop(Pipe1MoveTimer);
     timer.stop(Pipe2MoveTimer);
@@ -120,6 +121,31 @@ byte PipeGen()
   byte holeBits = (1 << hole) - 1;
   byte offset = random(1, 8 - hole);
   return 0xff & ~(holeBits << offset);
+}
+
+void ButtonPressScan()
+{
+  static boolean init = false;
+  boolean ButtonPress = digitalRead(BUTTON_PIN);
+
+  if (ButtonPress) 
+  {
+    if (running = true) 
+    {
+      
+      if (!init) 
+      {
+     	//change bird pos      
+      }      
+    }
+    else 
+    {
+      transition();
+      startGame(true); 
+    }
+  }
+  init = ButtonPress;
+  digitalWrite(LED_PIN, ButtonPress);
 }
 
 
