@@ -182,6 +182,7 @@ void ButtonPressScan()
 void MoveBird()
 {
 	static float y = 0.5;
+	game.BirdVel = game.BirdVel + grav;
 	float initY = game.BirdCrd;
 
   	game.BirdCrd = game.BirdCrd + game.BirdVel;
