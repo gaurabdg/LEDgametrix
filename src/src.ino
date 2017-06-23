@@ -21,6 +21,8 @@ Timer timer;
 int Update;
 int Pipe1MoveTimer;
 int Pipe2MoveTimer;
+int difficulty;
+
 
 const float grav = 0.005;
 const float up = -0.05;
@@ -28,8 +30,9 @@ const byte BirdX = 1;
 
 void setup()
 {
+  Serial.begin(9600);
   MX.shutdown(0, false);
-  MX.setIntensity(0, 8);
+  MX.setIntensity(0, 5);
   MX.clearDisplay(0);
   pinMode (BUTTON_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
@@ -100,13 +103,17 @@ void GameStart(boolean ask)
   }
 }
 
+
+
 void Pipe1Start()
 {
+
   Pipe1MoveTimer = timer.every(200, Pipe1Move);
 }
 
 void Pipe2Start()
-{
+{	
+  Serial.println(difficulty);
   Pipe2MoveTimer = timer.every(200, Pipe2Move);
 }
 
@@ -214,11 +221,13 @@ void PipeMove(Pipe *pipe)
     else 
     {
       game.score++;
-    }
+
+     }
   }
 
   pipe->Xcrd = pipe->Xcrd - 1;
 }
+
 
 void PipeDraw(Pipe *pipe, byte x) 
 {
@@ -312,4 +321,6 @@ void error()
 void loop() 
 {
   timer.update();
+
+
 }
