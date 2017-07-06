@@ -259,6 +259,7 @@ byte PipeGen()
   return 0xff & ~(holeBits << offset);
 }
 
+
 void ButtonPressScan()
 {
   static boolean init = false;
